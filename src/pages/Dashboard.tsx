@@ -139,9 +139,10 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
 
   const handleCopyToClipboard = () => {
     // Format data untuk copy ke spreadsheet
-    const headers = ['No', 'Inet', 'SC ORDER', 'Tiket', 'Fallout', 'WONUM', 'STATUS BIMA', 'Tanggal'];
+    const headers = ['No', 'Nama', 'Inet', 'SC ORDER', 'Tiket', 'Fallout', 'WONUM', 'STATUS BIMA', 'Tanggal'];
     const rows = filteredData.map((item, index) => [
       index + 1,
+      item.namaInput || '-',
       item.inet,
       item.scOrder,
       item.tiket,
@@ -314,6 +315,7 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
                 <TableHeader className="sticky top-0 bg-white">
                   <TableRow>
                     <TableHead className="w-12">No</TableHead>
+                    <TableHead>Nama</TableHead>
                     <TableHead>Inet</TableHead>
                     <TableHead>SC ORDER</TableHead>
                     <TableHead>Tiket</TableHead>
@@ -326,7 +328,7 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
                 <TableBody>
                   {filteredData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                         Tidak ada data
                       </TableCell>
                     </TableRow>
@@ -334,6 +336,7 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
                     filteredData.map((item, index) => (
                       <TableRow key={item.id}>
                         <TableCell>{index + 1}</TableCell>
+                        <TableCell className="font-medium text-primary">{item.namaInput || '-'}</TableCell>
                         <TableCell className="font-medium">{item.inet}</TableCell>
                         <TableCell>{item.scOrder}</TableCell>
                         <TableCell>{item.tiket}</TableCell>

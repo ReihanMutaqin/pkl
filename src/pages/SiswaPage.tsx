@@ -41,6 +41,7 @@ const getStatusColor = (status: string) => {
 
 export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL }: SiswaPageProps) {
   const [selectedInet, setSelectedInet] = useState<string>('');
+  const [namaInput, setNamaInput] = useState(() => localStorage.getItem('pklNamaInput') || '');
   const [formData, setFormData] = useState({
     tiket: '',
     fallout: '',
@@ -80,6 +81,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
         wonum: existing.wonum,
         statusBima: existing.statusBima
       });
+      if (existing.namaInput) setNamaInput(existing.namaInput);
     } else {
       setExistingData(null);
       setShowDuplicateWarning(false);
@@ -89,10 +91,16 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!namaInput.trim()) {
+      toast.error('Masukkan nama Anda terlebih dahulu!');
+      return;
+    }
     if (!selectedInet) {
       toast.error('Pilih Inet terlebih dahulu!');
       return;
     }
+    // Simpan nama ke localStorage supaya tidak perlu input ulang
+    localStorage.setItem('pklNamaInput', namaInput.trim());
     if (formData.tiket && formData.fallout && formData.wonum && formData.statusBima) {
       const selectedAdminData = adminData.find(item => item.inet === selectedInet);
       if (selectedAdminData) {
@@ -103,6 +111,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
           // Update data yang sudah ada
           onEditPKL({
             ...existing,
+            namaInput: namaInput.trim(),
             tiket: formData.tiket,
             fallout: formData.fallout,
             wonum: formData.wonum,
@@ -115,6 +124,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
             adminDataId: selectedAdminData.id,
             inet: selectedAdminData.inet,
             scOrder: selectedAdminData.scOrder,
+            namaInput: namaInput.trim(),
             tiket: formData.tiket,
             fallout: formData.fallout,
             wonum: formData.wonum,
@@ -232,6 +242,18 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Nama Penginput */}
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="namaInput">Nama Kalian (Penginput)</Label>
+                <Input
+                  id="namaInput"
+                  placeholder="Masukkan nama Anda"
+                  value={namaInput}
+                  onChange={(e) => setNamaInput(e.target.value)}
+                  required
+                />
+              </div>
+
               {/* Pilih Inet dari data Admin */}
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="selectInet">Pilih Inet (dari data Admin)</Label>
@@ -358,6 +380,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
               <TableHeader>
                 <TableRow>
                   <TableHead>No</TableHead>
+                  <TableHead>Nama</TableHead>
                   <TableHead>Inet</TableHead>
                   <TableHead>SC ORDER</TableHead>
                   <TableHead>Tiket</TableHead>
@@ -371,7 +394,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
               <TableBody>
                 {filteredData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       Belum ada progress PKL
                     </TableCell>
                   </TableRow>
@@ -379,6 +402,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
                   filteredData.map((item, index) => (
                     <TableRow key={item.id}>
                       <TableCell>{index + 1}</TableCell>
+                      <TableCell className="font-medium text-primary">{item.namaInput || '-'}</TableCell>
                       <TableCell className="font-medium">{item.inet}</TableCell>
                       <TableCell>{item.scOrder}</TableCell>
                       <TableCell>{item.tiket}</TableCell>

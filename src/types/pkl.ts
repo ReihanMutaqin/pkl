@@ -13,6 +13,7 @@ export interface PKLData {
   adminDataId: string; // Referensi ke data admin
   inet: string; // Copy dari admin untuk kemudahan
   scOrder: string; // Copy dari admin untuk kemudahan
+  namaInput: string; // Nama penginput (siswa PKL)
   tiket: string;
   fallout: string;
   wonum: string;

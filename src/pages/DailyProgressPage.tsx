@@ -167,9 +167,10 @@ export function DailyProgressPage({ adminData, pklData }: DailyProgressPageProps
   };
 
   const handleCopyToday = () => {
-    const headers = ['No', 'Inet', 'SC ORDER', 'Tiket', 'Fallout', 'WONUM', 'STATUS BIMA', 'Jam'];
+    const headers = ['No', 'Nama', 'Inet', 'SC ORDER', 'Tiket', 'Fallout', 'WONUM', 'STATUS BIMA', 'Jam'];
     const rows = filteredTodayData.map((item, index) => [
       index + 1,
+      item.namaInput || '-',
       item.inet,
       item.scOrder,
       item.tiket,
@@ -186,9 +187,10 @@ export function DailyProgressPage({ adminData, pklData }: DailyProgressPageProps
 
   const handleCopyHistory = (dateKey: string) => {
     const items = historyGrouped[dateKey] || [];
-    const headers = ['No', 'Inet', 'SC ORDER', 'Tiket', 'Fallout', 'WONUM', 'STATUS BIMA', 'Tanggal', 'Jam'];
+    const headers = ['No', 'Nama', 'Inet', 'SC ORDER', 'Tiket', 'Fallout', 'WONUM', 'STATUS BIMA', 'Tanggal', 'Jam'];
     const rows = items.map((item, index) => [
       index + 1,
+      item.namaInput || '-',
       item.inet,
       item.scOrder,
       item.tiket,
@@ -407,6 +409,7 @@ export function DailyProgressPage({ adminData, pklData }: DailyProgressPageProps
               <TableHeader className="bg-green-50">
                 <TableRow>
                   <TableHead className="w-12">No</TableHead>
+                  <TableHead>Nama</TableHead>
                   <TableHead>Inet</TableHead>
                   <TableHead>SC ORDER</TableHead>
                   <TableHead>Tiket</TableHead>
@@ -419,7 +422,7 @@ export function DailyProgressPage({ adminData, pklData }: DailyProgressPageProps
               <TableBody>
                 {filteredTodayData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                       <div className="flex flex-col items-center gap-2">
                         <CalendarDays className="w-10 h-10 text-gray-300" />
                         <p className="font-medium">Belum ada progress {isToday ? 'hari ini' : 'pada tanggal ini'}</p>
@@ -433,6 +436,7 @@ export function DailyProgressPage({ adminData, pklData }: DailyProgressPageProps
                   filteredTodayData.map((item, index) => (
                     <TableRow key={item.id} className="hover:bg-green-50/50">
                       <TableCell className="font-medium text-green-700">{index + 1}</TableCell>
+                      <TableCell className="font-medium text-primary">{item.namaInput || '-'}</TableCell>
                       <TableCell className="font-medium">{item.inet}</TableCell>
                       <TableCell>{item.scOrder}</TableCell>
                       <TableCell>{item.tiket}</TableCell>
@@ -547,6 +551,7 @@ export function DailyProgressPage({ adminData, pklData }: DailyProgressPageProps
                             <TableHeader className="bg-slate-50">
                               <TableRow>
                                 <TableHead className="w-12">No</TableHead>
+                                <TableHead>Nama</TableHead>
                                 <TableHead>Inet</TableHead>
                                 <TableHead>SC ORDER</TableHead>
                                 <TableHead>Tiket</TableHead>
@@ -560,6 +565,7 @@ export function DailyProgressPage({ adminData, pklData }: DailyProgressPageProps
                               {items.map((item, index) => (
                                 <TableRow key={item.id}>
                                   <TableCell>{index + 1}</TableCell>
+                                  <TableCell className="font-medium text-primary">{item.namaInput || '-'}</TableCell>
                                   <TableCell className="font-medium">{item.inet}</TableCell>
                                   <TableCell>{item.scOrder}</TableCell>
                                   <TableCell>{item.tiket}</TableCell>
