@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { 
   LayoutDashboard, 
   ClipboardList,
+  CalendarDays,
   Menu,
   X,
   Settings
@@ -26,6 +27,7 @@ export function Layout({ children }: LayoutProps) {
   const mainNavItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/siswa', label: 'Input Progres', icon: ClipboardList },
+    { path: '/daily', label: 'Progres Harian', icon: CalendarDays },
   ];
 
   return (

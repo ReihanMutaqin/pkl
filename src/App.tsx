@@ -6,6 +6,7 @@ import { Layout } from '@/components/Layout';
 import { Dashboard } from '@/pages/Dashboard';
 import { AdminPage } from '@/pages/AdminPage';
 import { SiswaPage } from '@/pages/SiswaPage';
+import { DailyProgressPage } from '@/pages/DailyProgressPage';
 import type { AdminData, PKLData } from '@/types/pkl';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
@@ -138,6 +139,15 @@ function App() {
                 onAddPKL={handleAddPKL}
                 onDeletePKL={handleDeletePKL}
                 onEditPKL={handleEditPKL}
+              />
+            } 
+          />
+          <Route 
+            path="/daily" 
+            element={
+              <DailyProgressPage 
+                adminData={adminData}
+                pklData={pklData}
               />
             } 
           />
