@@ -73,7 +73,7 @@ export function Layout({ children }: LayoutProps) {
         </div>
         
         <div className="p-4 border-t text-xs text-center text-muted-foreground">
-          © 2024 PKL Tracker
+          © 2026 PKL Tracker
         </div>
       </aside>
 
