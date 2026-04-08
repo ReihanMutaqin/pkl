@@ -403,18 +403,18 @@ export function DailyProgressPage({ adminData, pklData }: DailyProgressPageProps
           </div>
 
           <div className="overflow-x-auto border rounded-lg">
-            <Table>
+            <Table className="table-fixed min-w-[850px]">
               <TableHeader className="bg-green-50">
                 <TableRow>
-                  <TableHead className="w-12">No</TableHead>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>Inet</TableHead>
-                  <TableHead>SC ORDER</TableHead>
-                  <TableHead>Tiket</TableHead>
-                  <TableHead>Fallout</TableHead>
-                  <TableHead>WONUM</TableHead>
-                  <TableHead>STATUS BIMA</TableHead>
-                  <TableHead>Jam</TableHead>
+                  <TableHead className="w-[40px]">No</TableHead>
+                  <TableHead className="w-[120px]">Nama</TableHead>
+                  <TableHead className="w-[110px]">Inet</TableHead>
+                  <TableHead className="w-[150px]">SC ORDER</TableHead>
+                  <TableHead className="w-[100px]">Tiket</TableHead>
+                  <TableHead className="w-[140px]">Fallout</TableHead>
+                  <TableHead className="w-[100px]">WONUM</TableHead>
+                  <TableHead className="w-[100px]">STATUS BIMA</TableHead>
+                  <TableHead className="w-[55px]">Jam</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -434,12 +434,12 @@ export function DailyProgressPage({ adminData, pklData }: DailyProgressPageProps
                   filteredTodayData.map((item, index) => (
                     <TableRow key={item.id} className="hover:bg-green-50/50">
                       <TableCell className="font-medium text-green-700">{index + 1}</TableCell>
-                      <TableCell className="font-medium text-primary">{item.namaInput || '-'}</TableCell>
-                      <TableCell className="font-medium">{item.inet}</TableCell>
-                      <TableCell>{item.scOrder}</TableCell>
-                      <TableCell>{item.tiket}</TableCell>
-                      <TableCell>{item.fallout}</TableCell>
-                      <TableCell>{item.wonum}</TableCell>
+                      <TableCell className="font-medium text-primary truncate" title={item.namaInput || '-'}>{item.namaInput || '-'}</TableCell>
+                      <TableCell className="font-medium truncate" title={item.inet}>{item.inet}</TableCell>
+                      <TableCell className="truncate" title={item.scOrder}>{item.scOrder}</TableCell>
+                      <TableCell className="truncate" title={item.tiket}>{item.tiket}</TableCell>
+                      <TableCell className="truncate" title={item.fallout}>{item.fallout}</TableCell>
+                      <TableCell className="truncate" title={item.wonum}>{item.wonum}</TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(item.statusBima)}>
                           {item.statusBima}
@@ -545,30 +545,30 @@ export function DailyProgressPage({ adminData, pklData }: DailyProgressPageProps
                           </Button>
                         </div>
                         <div className="overflow-x-auto">
-                          <Table>
+                          <Table className="table-fixed min-w-[850px]">
                             <TableHeader className="bg-slate-50">
                               <TableRow>
-                                <TableHead className="w-12">No</TableHead>
-                                <TableHead>Nama</TableHead>
-                                <TableHead>Inet</TableHead>
-                                <TableHead>SC ORDER</TableHead>
-                                <TableHead>Tiket</TableHead>
-                                <TableHead>Fallout</TableHead>
-                                <TableHead>WONUM</TableHead>
-                                <TableHead>STATUS BIMA</TableHead>
-                                <TableHead>Jam</TableHead>
+                                <TableHead className="w-[40px]">No</TableHead>
+                                <TableHead className="w-[120px]">Nama</TableHead>
+                                <TableHead className="w-[110px]">Inet</TableHead>
+                                <TableHead className="w-[150px]">SC ORDER</TableHead>
+                                <TableHead className="w-[100px]">Tiket</TableHead>
+                                <TableHead className="w-[140px]">Fallout</TableHead>
+                                <TableHead className="w-[100px]">WONUM</TableHead>
+                                <TableHead className="w-[100px]">STATUS BIMA</TableHead>
+                                <TableHead className="w-[55px]">Jam</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               {items.map((item, index) => (
                                 <TableRow key={item.id}>
                                   <TableCell>{index + 1}</TableCell>
-                                  <TableCell className="font-medium text-primary">{item.namaInput || '-'}</TableCell>
-                                  <TableCell className="font-medium">{item.inet}</TableCell>
-                                  <TableCell>{item.scOrder}</TableCell>
-                                  <TableCell>{item.tiket}</TableCell>
-                                  <TableCell>{item.fallout}</TableCell>
-                                  <TableCell>{item.wonum}</TableCell>
+                                  <TableCell className="font-medium text-primary truncate" title={item.namaInput || '-'}>{item.namaInput || '-'}</TableCell>
+                                  <TableCell className="font-medium truncate" title={item.inet}>{item.inet}</TableCell>
+                                  <TableCell className="truncate" title={item.scOrder}>{item.scOrder}</TableCell>
+                                  <TableCell className="truncate" title={item.tiket}>{item.tiket}</TableCell>
+                                  <TableCell className="truncate" title={item.fallout}>{item.fallout}</TableCell>
+                                  <TableCell className="truncate" title={item.wonum}>{item.wonum}</TableCell>
                                   <TableCell>
                                     <Badge className={getStatusColor(item.statusBima)}>
                                       {item.statusBima}
