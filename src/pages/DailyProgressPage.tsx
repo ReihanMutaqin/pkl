@@ -83,9 +83,7 @@ const formatDateID = (dateStr: string): string => {
 // Helper: format time from ISO string
 const formatTimeWIB = (isoString: string): string => {
   const date = new Date(isoString);
-  const wibOffset = 7 * 60;
-  const wibDate = new Date(date.getTime() + (wibOffset - date.getTimezoneOffset()) * 60000);
-  return wibDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
 };
 
 // Helper: get relative day label
