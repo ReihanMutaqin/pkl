@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import type { AdminData, PKLData } from '@/types/pkl';
 import { STATUS_BIMA_OPTIONS, getStatusLabel } from '@/types/pkl';
-import { PlusCircle, Trash2, Edit, ClipboardList, Search, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Wifi } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, ClipboardList, Search, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Wifi, CalendarDays, CalendarCheck, Clock, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -39,6 +39,53 @@ const getStatusColor = (status: string) => {
   }
 };
 
+// Helper: get date string in WIB (UTC+7) as YYYY-MM-DD
+const getWIBDateString = (isoString: string): string => {
+  const date = new Date(isoString);
+  const wibOffset = 7 * 60;
+  const wibDate = new Date(date);
+  wibDate.setUTCMinutes(wibDate.getUTCMinutes() + wibOffset);
+  return wibDate.toISOString().split('T')[0];
+};
+
+// Helper: get today's date string in WIB
+const getTodayWIB = (): string => {
+  const now = new Date();
+  const wibOffset = 7 * 60;
+  const wibNow = new Date(now.getTime() + (wibOffset - now.getTimezoneOffset()) * 60000);
+  return wibNow.toISOString().split('T')[0];
+};
+
+// Helper: format date to readable Indonesian format
+const formatDateID = (dateStr: string): string => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+};
+
+// Helper: format time from ISO string
+const formatTimeWIB = (isoString: string): string => {
+  const date = new Date(isoString);
+  const wibOffset = 7 * 60;
+  const wibDate = new Date(date.getTime() + (wibOffset - date.getTimezoneOffset()) * 60000);
+  return wibDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+};
+
+// Helper: get relative day label
+const getRelativeDay = (dateStr: string, today: string): string => {
+  const dateMs = new Date(dateStr).getTime();
+  const todayMs = new Date(today).getTime();
+  const diffDays = Math.round((todayMs - dateMs) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Hari Ini';
+  if (diffDays === 1) return 'Kemarin';
+  return `${diffDays} Hari Lalu`;
+};
+
 export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL }: SiswaPageProps) {
   const [selectedInet, setSelectedInet] = useState<string>('');
   const [namaInput, setNamaInput] = useState(() => localStorage.getItem('pklNamaInput') || '');
@@ -58,6 +105,80 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
   
   // State untuk expand/collapse daftar inet
   const [showInetList, setShowInetList] = useState(false);
+  
+  // State untuk expand/collapse per tanggal di daftar progress
+  const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
+  const [copiedDate, setCopiedDate] = useState<string | null>(null);
+
+  const today = getTodayWIB();
+
+  // Group PKL data by date
+  const { groupedByDate, sortedDates, totalCount } = useMemo(() => {
+    const groups: Record<string, PKLData[]> = {};
+
+    pklData.forEach(item => {
+      const dateKey = getWIBDateString(item.createdAt);
+      if (!groups[dateKey]) groups[dateKey] = [];
+      groups[dateKey].push(item);
+    });
+
+    // Sort items within each date by createdAt desc
+    Object.keys(groups).forEach(dateKey => {
+      groups[dateKey].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    });
+
+    // Sort dates descending (newest first)
+    const dates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+
+    // Auto-expand today
+    if (dates.includes(today)) {
+      setExpandedDates(prev => {
+        if (prev[today] === undefined) return { ...prev, [today]: true };
+        return prev;
+      });
+    }
+
+    return { groupedByDate: groups, sortedDates: dates, totalCount: pklData.length };
+  }, [pklData, today]);
+
+  // Filter items within a date group
+  const filterItem = (item: PKLData) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      item.tiket.toLowerCase().includes(term) ||
+      item.fallout.toLowerCase().includes(term) ||
+      item.wonum.toLowerCase().includes(term) ||
+      item.inet.toLowerCase().includes(term) ||
+      item.scOrder.toLowerCase().includes(term) ||
+      item.statusBima.toLowerCase().includes(term) ||
+      (item.namaInput || '').toLowerCase().includes(term)
+    );
+  };
+
+  const toggleDateExpand = (date: string) => {
+    setExpandedDates(prev => ({ ...prev, [date]: !prev[date] }));
+  };
+
+  const handleCopyDate = (dateKey: string) => {
+    const items = (groupedByDate[dateKey] || []).filter(filterItem);
+    const headers = ['No', 'Nama', 'Inet', 'SC ORDER', 'Tiket', 'Fallout', 'WONUM', 'STATUS BIMA', 'Jam'];
+    const rows = items.map((item, index) => [
+      index + 1,
+      item.namaInput || '-',
+      item.inet,
+      item.scOrder,
+      item.tiket,
+      item.fallout,
+      item.wonum,
+      item.statusBima,
+      formatTimeWIB(item.createdAt)
+    ]);
+    const csvContent = [headers.join('\t'), ...rows.map(r => r.join('\t'))].join('\n');
+    navigator.clipboard.writeText(csvContent);
+    setCopiedDate(dateKey);
+    setTimeout(() => setCopiedDate(null), 2000);
+  };
 
   // Filter data Inet yang belum dipakai (opsional, bisa dihapus jika ingin memperbolehkan duplikat)
   const availableInet = adminData;
@@ -140,15 +261,6 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
       }
     }
   };
-
-  const filteredData = pklData.filter(item => 
-    item.tiket.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.fallout.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.wonum.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.inet.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.scOrder.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.statusBima.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   const handleEdit = (item: PKLData) => {
     setEditingData(item);
@@ -360,87 +472,186 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
         </CardContent>
       </Card>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-        <Input
-          placeholder="Cari progress (tiket, fallout, WONUM, inet, SC ORDER, status...)"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Daftar Progress PKL</CardTitle>
+      <Card className="border-slate-300 shadow-md">
+        <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-slate-200">
+          <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
+            <CalendarDays className="w-5 h-5" />
+            📋 Daftar Progress PKL
+            <Badge variant="secondary" className="bg-slate-100 text-slate-700 border-slate-300">
+              {totalCount} order
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              {sortedDates.length} hari
+            </Badge>
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>No</TableHead>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>Inet</TableHead>
-                  <TableHead>SC ORDER</TableHead>
-                  <TableHead>Tiket</TableHead>
-                  <TableHead>Fallout</TableHead>
-                  <TableHead>WONUM</TableHead>
-                  <TableHead>STATUS BIMA</TableHead>
-                  <TableHead>Tanggal</TableHead>
-                  <TableHead>Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                      Belum ada progress PKL
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredData.map((item, index) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell className="font-medium text-primary">{item.namaInput || '-'}</TableCell>
-                      <TableCell className="font-medium">{item.inet}</TableCell>
-                      <TableCell>{item.scOrder}</TableCell>
-                      <TableCell>{item.tiket}</TableCell>
-                      <TableCell>{item.fallout}</TableCell>
-                      <TableCell>{item.wonum}</TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(item.statusBima)}>
-                          {item.statusBima}
-                        </Badge>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {getStatusLabel(item.statusBima)}
-                        </div>
-                      </TableCell>
-                      <TableCell>{new Date(item.createdAt).toLocaleDateString('id-ID')}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(item)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => onDeletePKL(item.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+        <CardContent className="pt-4">
+          {/* Search */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Cari progress (tiket, fallout, WONUM, inet, SC ORDER, nama, status...)"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
+
+          {sortedDates.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <CalendarDays className="w-10 h-10 mx-auto text-gray-300 mb-2" />
+              <p className="font-medium">Belum ada progress PKL</p>
+              <p className="text-xs">Mulai input progress di form di atas</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sortedDates.map(dateKey => {
+                const allItems = groupedByDate[dateKey];
+                const filteredItems = allItems.filter(filterItem);
+                const isExpanded = expandedDates[dateKey] ?? false;
+                const isDateToday = dateKey === today;
+                const compworkCount = allItems.filter(i => i.statusBima === 'COMPWORK').length;
+
+                // Skip dates with no filtered results when searching
+                if (searchTerm && filteredItems.length === 0) return null;
+
+                return (
+                  <div key={dateKey} className={`border rounded-lg overflow-hidden ${isDateToday ? 'border-green-300 shadow-sm' : ''}`}>
+                    {/* Date Group Header */}
+                    <button
+                      onClick={() => toggleDateExpand(dateKey)}
+                      className={`w-full flex items-center justify-between p-4 transition-colors text-left ${
+                        isDateToday
+                          ? 'bg-green-50 hover:bg-green-100'
+                          : 'bg-slate-50 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <CalendarCheck className={`w-4 h-4 ${isDateToday ? 'text-green-600' : 'text-slate-500'}`} />
+                        <div>
+                          <span className="font-semibold text-sm">
+                            {formatDateID(dateKey)}
+                          </span>
+                          <span className="text-xs text-muted-foreground ml-2">
+                            ({getRelativeDay(dateKey, today)})
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {allItems.length} order
+                          </Badge>
+                          {compworkCount > 0 && (
+                            <Badge className="bg-green-500 text-xs">
+                              {compworkCount} selesai
+                            </Badge>
+                          )}
+                        </div>
+                        {isExpanded ? (
+                          <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </div>
+                    </button>
+
+                    {/* Expanded Table */}
+                    {isExpanded && (
+                      <div>
+                        <div className="flex justify-end px-4 py-2 bg-white border-t">
+                          <Button
+                            onClick={() => handleCopyDate(dateKey)}
+                            variant="ghost"
+                            size="sm"
+                            className="gap-2 text-xs"
+                          >
+                            {copiedDate === dateKey ? (
+                              <Check className="w-3 h-3 text-green-500" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
+                            {copiedDate === dateKey ? 'Tersalin!' : 'Copy ke Spreadsheet'}
+                          </Button>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader className={isDateToday ? 'bg-green-50' : 'bg-slate-50'}>
+                              <TableRow>
+                                <TableHead className="w-12">No</TableHead>
+                                <TableHead>Nama</TableHead>
+                                <TableHead>Inet</TableHead>
+                                <TableHead>SC ORDER</TableHead>
+                                <TableHead>Tiket</TableHead>
+                                <TableHead>Fallout</TableHead>
+                                <TableHead>WONUM</TableHead>
+                                <TableHead>STATUS BIMA</TableHead>
+                                <TableHead>Jam</TableHead>
+                                <TableHead>Aksi</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {filteredItems.length === 0 ? (
+                                <TableRow>
+                                  <TableCell colSpan={10} className="text-center py-6 text-muted-foreground">
+                                    Tidak ada data yang cocok dengan pencarian
+                                  </TableCell>
+                                </TableRow>
+                              ) : (
+                                filteredItems.map((item, index) => (
+                                  <TableRow key={item.id} className={isDateToday ? 'hover:bg-green-50/50' : ''}>
+                                    <TableCell className={isDateToday ? 'font-medium text-green-700' : ''}>{index + 1}</TableCell>
+                                    <TableCell className="font-medium text-primary">{item.namaInput || '-'}</TableCell>
+                                    <TableCell className="font-medium">{item.inet}</TableCell>
+                                    <TableCell>{item.scOrder}</TableCell>
+                                    <TableCell>{item.tiket}</TableCell>
+                                    <TableCell>{item.fallout}</TableCell>
+                                    <TableCell>{item.wonum}</TableCell>
+                                    <TableCell>
+                                      <Badge className={getStatusColor(item.statusBima)}>
+                                        {item.statusBima}
+                                      </Badge>
+                                      <div className="text-xs text-muted-foreground mt-0.5">
+                                        {getStatusLabel(item.statusBima)}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-sm">
+                                      <div className="flex items-center gap-1">
+                                        <Clock className="w-3 h-3 text-muted-foreground" />
+                                        {formatTimeWIB(item.createdAt)}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex gap-2">
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => handleEdit(item)}
+                                        >
+                                          <Edit className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                          variant="destructive"
+                                          size="sm"
+                                          onClick={() => onDeletePKL(item.id)}
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
