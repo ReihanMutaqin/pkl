@@ -24,7 +24,8 @@ import {
   Check,
   X,
   FileSpreadsheet,
-  Trophy
+  Trophy,
+  ChevronDown
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -51,10 +52,28 @@ const getStatusColor = (status: string) => {
   }
 };
 
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  COMPWORK:  { label: 'COMPWORK',  color: 'text-green-700',  bg: 'bg-green-100' },
+  WAPPR:     { label: 'WAPPR',     color: 'text-yellow-700', bg: 'bg-yellow-100' },
+  INSTCOMP:  { label: 'INSTCOMP',  color: 'text-blue-700',   bg: 'bg-blue-100' },
+  ACTCOMP:   { label: 'ACTCOMP',   color: 'text-purple-700', bg: 'bg-purple-100' },
+  CANCLWORK: { label: 'CANCLWORK', color: 'text-red-700',    bg: 'bg-red-100' },
+  WORKFAIL:  { label: 'WORKFAIL',  color: 'text-gray-700',   bg: 'bg-gray-200' },
+};
+
 export function Dashboard({ adminData, pklData }: DashboardProps) {
   const [showViewAll, setShowViewAll] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [copied, setCopied] = useState(false);
+  const [expandedNames, setExpandedNames] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (name: string) => {
+    setExpandedNames(prev => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      return next;
+    });
+  };
 
   const totalAdminData = adminData.length;
   const totalPKLData = pklData.length;
@@ -139,15 +158,16 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
   );
 
   // Leaderboard: hitung jumlah pekerjaan per siswa (semua status), case-insensitive
-  const leaderboardMap = pklData.reduce<Record<string, { displayName: string; count: number }>>((acc, item) => {
+  const leaderboardMap = pklData.reduce<Record<string, { displayName: string; count: number; statusBreakdown: Record<string, number> }>>((acc, item) => {
     const raw = item.namaInput?.trim() || 'Tidak Diketahui';
     const key = raw.toLowerCase();
     if (!acc[key]) {
-      // Tampilkan nama dengan title case
       const titleCase = raw.replace(/\b\w/g, (c) => c.toUpperCase());
-      acc[key] = { displayName: titleCase, count: 0 };
+      acc[key] = { displayName: titleCase, count: 0, statusBreakdown: {} };
     }
     acc[key].count += 1;
+    const s = item.statusBima || 'UNKNOWN';
+    acc[key].statusBreakdown[s] = (acc[key].statusBreakdown[s] || 0) + 1;
     return acc;
   }, {});
 
@@ -257,7 +277,7 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
           {leaderboard.length === 0 ? (
             <p className="text-center text-muted-foreground py-6">Belum ada data progress PKL</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {leaderboard.map((entry, index) => {
                 const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null;
                 const barColor =
@@ -265,27 +285,62 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
                   index === 1 ? 'bg-gray-400' :
                   index === 2 ? 'bg-amber-600' :
                   'bg-primary';
+                const isExpanded = expandedNames.has(entry.displayName);
+                const breakdown = Object.entries(entry.statusBreakdown).sort((a, b) => b[1] - a[1]);
                 return (
-                  <div key={entry.displayName} className="flex items-center gap-3">
-                    {/* Rank */}
-                    <div className="w-8 text-center font-bold text-sm shrink-0">
-                      {medal ?? <span className="text-muted-foreground">#{index + 1}</span>}
-                    </div>
-                    {/* Name & bar */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className={`text-sm font-medium truncate ${index < 3 ? 'font-semibold' : ''}`}>
-                          {entry.displayName}
-                        </span>
-                        <span className="text-sm font-bold ml-2 shrink-0">{entry.count}</span>
+                  <div key={entry.displayName} className="border rounded-lg overflow-hidden">
+                    {/* Row utama — klik untuk expand */}
+                    <button
+                      onClick={() => toggleExpand(entry.displayName)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 transition-colors text-left"
+                    >
+                      {/* Rank */}
+                      <div className="w-8 text-center font-bold text-sm shrink-0">
+                        {medal ?? <span className="text-muted-foreground">#{index + 1}</span>}
                       </div>
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div
-                          className={`${barColor} h-2 rounded-full transition-all duration-500`}
-                          style={{ width: `${(entry.count / maxCount) * 100}%` }}
-                        />
+                      {/* Name & bar */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className={`text-sm truncate ${index < 3 ? 'font-semibold' : 'font-medium'}`}>
+                            {entry.displayName}
+                          </span>
+                          <span className="text-sm font-bold ml-2 shrink-0">{entry.count}</span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-1.5">
+                          <div
+                            className={`${barColor} h-1.5 rounded-full transition-all duration-500`}
+                            style={{ width: `${(entry.count / maxCount) * 100}%` }}
+                          />
+                        </div>
                       </div>
-                    </div>
+                      {/* Chevron */}
+                      <ChevronDown
+                        className={`w-4 h-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+
+                    {/* Dropdown detail breakdown */}
+                    {isExpanded && (
+                      <div className="px-4 pb-3 pt-1 bg-muted/30 border-t">
+                        <p className="text-xs text-muted-foreground mb-2">Breakdown per status:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {breakdown.map(([status, cnt]) => {
+                            const cfg = STATUS_CONFIG[status];
+                            return (
+                              <span
+                                key={status}
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                  cfg ? `${cfg.bg} ${cfg.color}` : 'bg-gray-100 text-gray-700'
+                                }`}
+                              >
+                                {status}
+                                <span className="font-bold">{cnt}</span>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
