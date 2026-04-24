@@ -138,15 +138,20 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
     item.statusBima.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Leaderboard: hitung jumlah pekerjaan per siswa (semua status)
-  const leaderboardMap = pklData.reduce<Record<string, number>>((acc, item) => {
-    const name = item.namaInput?.trim() || 'Tidak Diketahui';
-    acc[name] = (acc[name] || 0) + 1;
+  // Leaderboard: hitung jumlah pekerjaan per siswa (semua status), case-insensitive
+  const leaderboardMap = pklData.reduce<Record<string, { displayName: string; count: number }>>((acc, item) => {
+    const raw = item.namaInput?.trim() || 'Tidak Diketahui';
+    const key = raw.toLowerCase();
+    if (!acc[key]) {
+      // Tampilkan nama dengan title case
+      const titleCase = raw.replace(/\b\w/g, (c) => c.toUpperCase());
+      acc[key] = { displayName: titleCase, count: 0 };
+    }
+    acc[key].count += 1;
     return acc;
   }, {});
 
-  const leaderboard = Object.entries(leaderboardMap)
-    .map(([name, count]) => ({ name, count }))
+  const leaderboard = Object.values(leaderboardMap)
     .sort((a, b) => b.count - a.count);
 
   const maxCount = leaderboard[0]?.count || 1;
@@ -261,7 +266,7 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
                   index === 2 ? 'bg-amber-600' :
                   'bg-primary';
                 return (
-                  <div key={entry.name} className="flex items-center gap-3">
+                  <div key={entry.displayName} className="flex items-center gap-3">
                     {/* Rank */}
                     <div className="w-8 text-center font-bold text-sm shrink-0">
                       {medal ?? <span className="text-muted-foreground">#{index + 1}</span>}
@@ -270,7 +275,7 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center mb-1">
                         <span className={`text-sm font-medium truncate ${index < 3 ? 'font-semibold' : ''}`}>
-                          {entry.name}
+                          {entry.displayName}
                         </span>
                         <span className="text-sm font-bold ml-2 shrink-0">{entry.count}</span>
                       </div>
