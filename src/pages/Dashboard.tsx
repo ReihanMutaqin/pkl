@@ -278,7 +278,7 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
             <p className="text-center text-muted-foreground py-6">Belum ada data progress PKL</p>
           ) : (
             <div className="space-y-2">
-              {leaderboard.map((entry, index) => {
+              {leaderboard.map((entry) => {
                 // Dense rank: rank ditentukan dari count, bukan index
                 const rank = leaderboard.findIndex(e => e.count === entry.count) + 1;
                 const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
