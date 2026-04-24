@@ -824,6 +824,15 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
                 <Input value={editingData.scOrder} disabled />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="edit-nama">Nama Penginput</Label>
+                <Input
+                  id="edit-nama"
+                  placeholder="Masukkan nama"
+                  value={editingData.namaInput || ''}
+                  onChange={(e) => setEditingData({ ...editingData, namaInput: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="edit-tiket">Tiket</Label>
                 <Input
                   id="edit-tiket"
