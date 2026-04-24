@@ -107,6 +107,18 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
   // State untuk expand/collapse per tanggal di daftar progress
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
   const [copiedDate, setCopiedDate] = useState<string | null>(null);
+  const [copiedField, setCopiedField] = useState<'inet' | 'sc' | null>(null);
+
+  const handleCopyField = (field: 'inet' | 'sc') => {
+    const adminItem = adminData.find(d => d.inet === selectedInet);
+    if (!adminItem) return;
+    const value = field === 'inet' ? adminItem.inet : adminItem.scOrder;
+    navigator.clipboard.writeText(value).then(() => {
+      setCopiedField(field);
+      toast.success(`${field === 'inet' ? 'Inet' : 'SC ORDER'} berhasil disalin!`);
+      setTimeout(() => setCopiedField(null), 2000);
+    });
+  };
 
   const today = getTodayWIB();
 
@@ -398,7 +410,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
                 </div>
               )}
 
-              {/* Info SC ORDER (readonly) */}
+              {/* Info SC ORDER (readonly) + Copy Buttons */}
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="scOrderDisplay">SC ORDER</Label>
                 <Input
@@ -408,6 +420,53 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
                   placeholder="SC ORDER akan muncul setelah memilih Inet"
                 />
               </div>
+
+              {/* Copy Buttons - hanya muncul jika Inet sudah dipilih */}
+              {selectedInet && (
+                <div className="md:col-span-2">
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopyField('inet')}
+                      className={`flex-1 gap-2 transition-all ${
+                        copiedField === 'inet'
+                          ? 'border-green-500 text-green-600 bg-green-50'
+                          : 'border-blue-300 text-blue-600 hover:bg-blue-50 hover:border-blue-400'
+                      }`}
+                    >
+                      {copiedField === 'inet' ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                      {copiedField === 'inet' ? 'Inet Tersalin! ✓' : 'Copy Inet'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopyField('sc')}
+                      className={`flex-1 gap-2 transition-all ${
+                        copiedField === 'sc'
+                          ? 'border-green-500 text-green-600 bg-green-50'
+                          : 'border-purple-300 text-purple-600 hover:bg-purple-50 hover:border-purple-400'
+                      }`}
+                    >
+                      {copiedField === 'sc' ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                      {copiedField === 'sc' ? 'SC Tersalin! ✓' : 'Copy SC'}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1.5 text-center">
+                    💡 Gunakan tombol di atas untuk menyalin Inet atau SC ORDER ke clipboard
+                  </p>
+                </div>
+              )}
               
               <div className="space-y-2">
                 <Label htmlFor="tiket">Tiket</Label>
