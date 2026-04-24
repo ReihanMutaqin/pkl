@@ -279,12 +279,15 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
           ) : (
             <div className="space-y-2">
               {leaderboard.map((entry, index) => {
-                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null;
+                // Dense rank: rank ditentukan dari count, bukan index
+                const rank = leaderboard.findIndex(e => e.count === entry.count) + 1;
+                const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
                 const barColor =
-                  index === 0 ? 'bg-yellow-400' :
-                  index === 1 ? 'bg-gray-400' :
-                  index === 2 ? 'bg-amber-600' :
+                  rank === 1 ? 'bg-yellow-400' :
+                  rank === 2 ? 'bg-gray-400' :
+                  rank === 3 ? 'bg-amber-600' :
                   'bg-primary';
+                const isTopRank = rank <= 3;
                 const isExpanded = expandedNames.has(entry.displayName);
                 const breakdown = Object.entries(entry.statusBreakdown).sort((a, b) => b[1] - a[1]);
                 return (
@@ -296,12 +299,12 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
                     >
                       {/* Rank */}
                       <div className="w-8 text-center font-bold text-sm shrink-0">
-                        {medal ?? <span className="text-muted-foreground">#{index + 1}</span>}
+                        {medal ?? <span className="text-muted-foreground">#{rank}</span>}
                       </div>
                       {/* Name & bar */}
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-center mb-1">
-                          <span className={`text-sm truncate ${index < 3 ? 'font-semibold' : 'font-medium'}`}>
+                          <span className={`text-sm truncate ${isTopRank ? 'font-semibold' : 'font-medium'}`}>
                             {entry.displayName}
                           </span>
                           <span className="text-sm font-bold ml-2 shrink-0">{entry.count}</span>
