@@ -3,12 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import type { AdminData, PKLData } from '@/types/pkl';
 import { STATUS_BIMA_OPTIONS, getStatusLabel } from '@/types/pkl';
-import { PlusCircle, Trash2, Edit, ClipboardList, Search, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Wifi, CalendarDays, CalendarCheck, Clock, Copy, Check } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, ClipboardList, Search, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Wifi, CalendarDays, CalendarCheck, Clock, Copy, Check, ChevronsUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -103,6 +105,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
   
   // State untuk expand/collapse daftar inet
   const [showInetList, setShowInetList] = useState(false);
+  const [openInetCombobox, setOpenInetCombobox] = useState(false);
 
   // State untuk filter tanggal pada badge "sudah diupdate"
   const [inetFilterDate, setInetFilterDate] = useState<string>('today');
@@ -424,24 +427,68 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
                 />
               </div>
 
-              {/* Pilih Inet dari data Admin */}
+              {/* Pilih Inet dari data Admin - Combobox dengan Search */}
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="selectInet">Pilih Inet (dari data Admin)</Label>
-                <Select value={selectedInet} onValueChange={handleInetSelect}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Inet" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableInet.map((item) => {
-                      const isExisting = pklData.some(pkl => pkl.inet === item.inet);
-                      return (
-                        <SelectItem key={item.id} value={item.inet}>
-                          {item.inet} (SC: {item.scOrder}) {isExisting && '⚠️ Sudah ada data'}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                <Popover open={openInetCombobox} onOpenChange={setOpenInetCombobox}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openInetCombobox}
+                      className="w-full justify-between font-normal h-10"
+                    >
+                      {selectedInet ? (
+                        <span className="flex items-center gap-2">
+                          <span className="font-medium">{selectedInet}</span>
+                          {pklData.some(pkl => pkl.inet === selectedInet) && (
+                            <span className="text-xs text-yellow-600">⚠️ Sudah ada data</span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">Pilih Inet...</span>
+                      )}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Cari inet atau SC ORDER..." />
+                      <CommandList className="max-h-64">
+                        <CommandEmpty>Inet tidak ditemukan.</CommandEmpty>
+                        <CommandGroup>
+                          {availableInet.map((item) => {
+                            const isExisting = pklData.some(pkl => pkl.inet === item.inet);
+                            return (
+                              <CommandItem
+                                key={item.id}
+                                value={`${item.inet} ${item.scOrder}`}
+                                onSelect={() => {
+                                  handleInetSelect(item.inet);
+                                  setOpenInetCombobox(false);
+                                }}
+                                className="flex items-center justify-between gap-2"
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-sm">{item.inet}</span>
+                                  <span className="text-xs text-muted-foreground">SC: {item.scOrder}</span>
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  {isExisting && (
+                                    <span className="text-xs text-yellow-600 bg-yellow-50 border border-yellow-200 px-1.5 py-0.5 rounded">⚠️ Ada data</span>
+                                  )}
+                                  {selectedInet === item.inet && (
+                                    <Check className="w-4 h-4 text-green-600" />
+                                  )}
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* Peringatan data sudah ada */}
