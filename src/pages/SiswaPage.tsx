@@ -103,6 +103,9 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
   
   // State untuk expand/collapse daftar inet
   const [showInetList, setShowInetList] = useState(false);
+
+  // State untuk filter tanggal pada badge "sudah diupdate"
+  const [inetFilterDate, setInetFilterDate] = useState<string>('today');
   
   // State untuk expand/collapse per tanggal di daftar progress
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
@@ -121,6 +124,34 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
   };
 
   const today = getTodayWIB();
+
+  // Semua tanggal unik dari pklData (descending)
+  const uniquePklDates = useMemo(() => {
+    const dateSet = new Set<string>();
+    pklData.forEach(item => dateSet.add(getWIBDateString(item.createdAt)));
+    return Array.from(dateSet).sort((a, b) => b.localeCompare(a));
+  }, [pklData]);
+
+  // Hitung berapa inet yang sudah diupdate berdasarkan tanggal filter
+  const updatedCountForDate = useMemo(() => {
+    const targetDate = inetFilterDate === 'today' ? today : inetFilterDate;
+    const inetsOnDate = new Set(
+      pklData
+        .filter(item => getWIBDateString(item.createdAt) === targetDate)
+        .map(item => item.inet)
+    );
+    return inetsOnDate.size;
+  }, [pklData, inetFilterDate, today]);
+
+  // Helper: apakah inet sudah diupdate pada tanggal filter?
+  const getIsDataUpdatedOnDate = (adminItem: AdminData): boolean => {
+    const targetDate = inetFilterDate === 'today' ? today : inetFilterDate;
+    return pklData.some(
+      item =>
+        (item.adminDataId === adminItem.id || item.inet === adminItem.inet) &&
+        getWIBDateString(item.createdAt) === targetDate
+    );
+  };
 
   // Group PKL data by date
   const { groupedByDate, sortedDates, totalCount } = useMemo(() => {
@@ -192,11 +223,6 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
 
   // Filter data Inet yang belum dipakai (opsional, bisa dihapus jika ingin memperbolehkan duplikat)
   const availableInet = adminData;
-
-  // Cek data mana yang sudah diupdate oleh siswa
-  const getIsDataUpdated = (adminItem: AdminData) => {
-    return pklData.some(pkl => pkl.adminDataId === adminItem.id || pkl.inet === adminItem.inet);
-  };
 
   const handleInetSelect = (value: string) => {
     setSelectedInet(value);
@@ -296,26 +322,49 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
       {/* Daftar Inet yang tersedia - Minimal & Elegant */}
       <Card className="border-green-200">
         <CardHeader className="pb-3">
-          <button 
-            onClick={() => setShowInetList(!showInetList)}
-            className="w-full flex items-center justify-between hover:bg-green-50/50 -mx-2 px-2 py-1 rounded-lg transition-colors"
-          >
-            <CardTitle className="text-base flex items-center gap-2 font-medium">
-              <Wifi className="w-4 h-4 text-green-600" />
-              Data Inet Tersedia
-              <Badge variant="secondary" className="text-xs">
-                {adminData.length}
-              </Badge>
-              <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">
-                {pklData.length} sudah diupdate
-              </Badge>
-            </CardTitle>
-            {showInetList ? (
-              <ChevronUp className="w-5 h-5 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
-            )}
-          </button>
+          <div className="flex items-center justify-between gap-2">
+            <button 
+              onClick={() => setShowInetList(!showInetList)}
+              className="flex-1 flex items-center justify-between hover:bg-green-50/50 -mx-2 px-2 py-1 rounded-lg transition-colors text-left"
+            >
+              <CardTitle className="text-base flex items-center gap-2 font-medium">
+                <Wifi className="w-4 h-4 text-green-600" />
+                Data Inet Tersedia
+                <Badge variant="secondary" className="text-xs">
+                  {adminData.length}
+                </Badge>
+                <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">
+                  {updatedCountForDate} sudah diupdate
+                </Badge>
+              </CardTitle>
+              {showInetList ? (
+                <ChevronUp className="w-5 h-5 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-muted-foreground" />
+              )}
+            </button>
+
+            {/* Dropdown filter tanggal */}
+            <Select
+              value={inetFilterDate}
+              onValueChange={setInetFilterDate}
+            >
+              <SelectTrigger className="w-auto h-8 text-xs gap-1 border-green-300 text-green-700 bg-green-50 hover:bg-green-100 shrink-0">
+                <CalendarDays className="w-3 h-3" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Hari Ini</SelectItem>
+                {uniquePklDates
+                  .filter(d => d !== today)
+                  .map(d => (
+                    <SelectItem key={d} value={d}>
+                      {formatDateID(d)}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         
         {showInetList && (
@@ -327,7 +376,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
             ) : (
               <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
                 {adminData.map((item) => {
-                  const isUpdated = getIsDataUpdated(item);
+                  const isUpdated = getIsDataUpdatedOnDate(item);
                   return (
                     <div 
                       key={item.id} 
