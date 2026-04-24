@@ -104,9 +104,9 @@ export function AdminPage({ adminData, onAddAdminData, onDeleteAdminData }: Admi
           <CardTitle className="text-lg">Daftar Data Master (Inet & SC ORDER)</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[420px] rounded-md border">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
                 <TableRow>
                   <TableHead>No</TableHead>
                   <TableHead>Inet</TableHead>

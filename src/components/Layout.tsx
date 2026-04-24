@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { 
-  LayoutDashboard, 
+import {
+  LayoutDashboard,
   ClipboardList,
   CalendarDays,
   Menu,
@@ -51,7 +51,7 @@ export function Layout({ children }: LayoutProps) {
             </Link>
           ))}
         </nav>
-        
+
         {/* Admin Menu di bawah dengan ikon Settings */}
         <div className="p-4 border-t">
           <DropdownMenu>
@@ -71,9 +71,9 @@ export function Layout({ children }: LayoutProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        
+
         <div className="p-4 border-t text-xs text-center text-muted-foreground">
-          © 2026 PKL Tracker
+          © 2026 PKL Tracker . By @Rei219
         </div>
       </aside>
 
@@ -107,7 +107,7 @@ export function Layout({ children }: LayoutProps) {
             </Button>
           </div>
         </div>
-        
+
         {/* Mobile Menu */}
         {isSidebarOpen && (
           <nav className="border-t p-4 space-y-2 bg-white">

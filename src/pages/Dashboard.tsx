@@ -23,7 +23,8 @@ import {
   Copy,
   Check,
   X,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Trophy
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -137,6 +138,19 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
     item.statusBima.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Leaderboard: hitung jumlah pekerjaan per siswa (semua status)
+  const leaderboardMap = pklData.reduce<Record<string, number>>((acc, item) => {
+    const name = item.namaInput?.trim() || 'Tidak Diketahui';
+    acc[name] = (acc[name] || 0) + 1;
+    return acc;
+  }, {});
+
+  const leaderboard = Object.entries(leaderboardMap)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count);
+
+  const maxCount = leaderboard[0]?.count || 1;
+
   const handleCopyToClipboard = () => {
     // Format data untuk copy ke spreadsheet
     const headers = ['No', 'Nama', 'Inet', 'SC ORDER', 'Tiket', 'Fallout', 'WONUM', 'STATUS BIMA', 'Tanggal'];
@@ -224,6 +238,56 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
           ))}
         </div>
       </div>
+
+      {/* Leaderboard */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-yellow-500" />
+            Leaderboard Siswa PKL
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">Peringkat berdasarkan total pekerjaan yang sudah dikerjakan (semua status)</p>
+        </CardHeader>
+        <CardContent>
+          {leaderboard.length === 0 ? (
+            <p className="text-center text-muted-foreground py-6">Belum ada data progress PKL</p>
+          ) : (
+            <div className="space-y-3">
+              {leaderboard.map((entry, index) => {
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null;
+                const barColor =
+                  index === 0 ? 'bg-yellow-400' :
+                  index === 1 ? 'bg-gray-400' :
+                  index === 2 ? 'bg-amber-600' :
+                  'bg-primary';
+                return (
+                  <div key={entry.name} className="flex items-center gap-3">
+                    {/* Rank */}
+                    <div className="w-8 text-center font-bold text-sm shrink-0">
+                      {medal ?? <span className="text-muted-foreground">#{index + 1}</span>}
+                    </div>
+                    {/* Name & bar */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className={`text-sm font-medium truncate ${index < 3 ? 'font-semibold' : ''}`}>
+                          {entry.name}
+                        </span>
+                        <span className="text-sm font-bold ml-2 shrink-0">{entry.count}</span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div
+                          className={`${barColor} h-2 rounded-full transition-all duration-500`}
+                          style={{ width: `${(entry.count / maxCount) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Ringkasan */}
       <Card>
