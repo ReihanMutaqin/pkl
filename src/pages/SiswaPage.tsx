@@ -125,31 +125,30 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
 
   const today = getTodayWIB();
 
-  // Semua tanggal unik dari pklData (descending)
-  const uniquePklDates = useMemo(() => {
+  // Semua tanggal unik dari adminData.createdAt (descending) — untuk dropdown
+  const uniqueAdminDates = useMemo(() => {
     const dateSet = new Set<string>();
-    pklData.forEach(item => dateSet.add(getWIBDateString(item.createdAt)));
+    adminData.forEach(item => dateSet.add(getWIBDateString(item.createdAt)));
     return Array.from(dateSet).sort((a, b) => b.localeCompare(a));
-  }, [pklData]);
+  }, [adminData]);
 
-  // Hitung berapa inet yang sudah diupdate berdasarkan tanggal filter
+  // adminData yang ditambahkan pada tanggal yang dipilih
+  const filteredAdminByDate = useMemo(() => {
+    const targetDate = inetFilterDate === 'today' ? today : inetFilterDate;
+    return adminData.filter(item => getWIBDateString(item.createdAt) === targetDate);
+  }, [adminData, inetFilterDate, today]);
+
+  // Hitung berapa inet (dari hari terpilih) yang sudah diupdate siswa
   const updatedCountForDate = useMemo(() => {
-    const targetDate = inetFilterDate === 'today' ? today : inetFilterDate;
-    const inetsOnDate = new Set(
-      pklData
-        .filter(item => getWIBDateString(item.createdAt) === targetDate)
-        .map(item => item.inet)
-    );
-    return inetsOnDate.size;
-  }, [pklData, inetFilterDate, today]);
+    return filteredAdminByDate.filter(adminItem =>
+      pklData.some(pkl => pkl.adminDataId === adminItem.id || pkl.inet === adminItem.inet)
+    ).length;
+  }, [filteredAdminByDate, pklData]);
 
-  // Helper: apakah inet sudah diupdate pada tanggal filter?
-  const getIsDataUpdatedOnDate = (adminItem: AdminData): boolean => {
-    const targetDate = inetFilterDate === 'today' ? today : inetFilterDate;
+  // Helper: apakah inet sudah diupdate oleh siswa (kapanpun)?
+  const getIsDataUpdated = (adminItem: AdminData): boolean => {
     return pklData.some(
-      item =>
-        (item.adminDataId === adminItem.id || item.inet === adminItem.inet) &&
-        getWIBDateString(item.createdAt) === targetDate
+      item => item.adminDataId === adminItem.id || item.inet === adminItem.inet
     );
   };
 
@@ -355,7 +354,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="today">Hari Ini</SelectItem>
-                {uniquePklDates
+                {uniqueAdminDates
                   .filter(d => d !== today)
                   .map(d => (
                     <SelectItem key={d} value={d}>
@@ -369,23 +368,23 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
         
         {showInetList && (
           <CardContent className="pt-0">
-            {adminData.length === 0 ? (
+            {filteredAdminByDate.length === 0 ? (
               <p className="text-muted-foreground text-center py-4 text-sm">
-                Belum ada data Inet dari Admin
+                Tidak ada data Inet yang ditambahkan admin pada hari ini
               </p>
             ) : (
               <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
-                {adminData.map((item) => {
-                  const isUpdated = getIsDataUpdatedOnDate(item);
+                {filteredAdminByDate.map((item) => {
+                  const isUpdated = getIsDataUpdated(item);
                   return (
-                    <div 
-                      key={item.id} 
+                    <div
+                      key={item.id}
                       className={`px-3 py-1.5 rounded-full text-sm border transition-all cursor-default ${
-                        isUpdated 
-                          ? 'bg-green-100 border-green-400 text-green-800' 
+                        isUpdated
+                          ? 'bg-green-100 border-green-400 text-green-800'
                           : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
                       }`}
-                      title={`SC: ${item.scOrder}${isUpdated ? ' - Sudah diupdate' : ''}`}
+                      title={`SC: ${item.scOrder}${isUpdated ? ' - Sudah diupdate' : ' - Belum diupdate'}`}
                     >
                       <span className="flex items-center gap-1.5">
                         {item.inet}
