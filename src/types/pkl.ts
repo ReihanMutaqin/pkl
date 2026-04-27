@@ -3,6 +3,7 @@ export interface AdminData {
   id: string;
   inet: string;
   scOrder: string;
+  note?: string;
   createdAt: string;
   updatedAt: string;
 }

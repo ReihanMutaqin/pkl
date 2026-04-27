@@ -472,6 +472,11 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
                                 <div className="flex flex-col">
                                   <span className="font-medium text-sm">{item.inet}</span>
                                   <span className="text-xs text-muted-foreground">SC: {item.scOrder}</span>
+                                  {item.note && (
+                                    <span className="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded w-fit mt-1 border border-amber-200">
+                                      📝 {item.note}
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
                                   {isExisting && (
@@ -490,6 +495,21 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
                   </PopoverContent>
                 </Popover>
               </div>
+
+              {/* Note Highlight (if exists) */}
+              {selectedInet && adminData.find(d => d.inet === selectedInet)?.note && (
+                <div className="md:col-span-2 bg-gradient-to-r from-amber-100 to-yellow-50 border-l-4 border-amber-500 text-amber-900 p-3 rounded-r-lg shadow-sm my-2">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-amber-200/50 p-1.5 rounded-full">
+                      <span className="text-lg leading-none block">📝</span>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-sm mb-0.5">Catatan Admin:</h4>
+                      <p className="text-sm font-medium">{adminData.find(d => d.inet === selectedInet)?.note}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Peringatan data sudah ada */}
               {showDuplicateWarning && existingData && (

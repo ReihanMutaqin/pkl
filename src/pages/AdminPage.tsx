@@ -17,7 +17,8 @@ interface AdminPageProps {
 export function AdminPage({ adminData, onAddAdminData, onDeleteAdminData }: AdminPageProps) {
   const [formData, setFormData] = useState({
     inet: '',
-    scOrder: ''
+    scOrder: '',
+    note: ''
   });
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -31,14 +32,15 @@ export function AdminPage({ adminData, onAddAdminData, onDeleteAdminData }: Admi
         return;
       }
       onAddAdminData(formData);
-      setFormData({ inet: '', scOrder: '' });
+      setFormData({ inet: '', scOrder: '', note: '' });
       toast.success('Data berhasil ditambahkan!');
     }
   };
 
   const filteredData = adminData.filter(item => 
     item.inet.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.scOrder.toLowerCase().includes(searchTerm.toLowerCase())
+    item.scOrder.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (item.note && item.note.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -79,6 +81,16 @@ export function AdminPage({ adminData, onAddAdminData, onDeleteAdminData }: Admi
                   required
                 />
               </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="note">Catatan (Opsional)</Label>
+                <Input
+                  id="note"
+                  placeholder="Masukkan catatan khusus untuk Inet ini..."
+                  value={formData.note}
+                  onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                />
+              </div>
             </div>
             
             <Button type="submit" className="w-full">
@@ -111,6 +123,7 @@ export function AdminPage({ adminData, onAddAdminData, onDeleteAdminData }: Admi
                   <TableHead>No</TableHead>
                   <TableHead>Inet</TableHead>
                   <TableHead>SC ORDER</TableHead>
+                  <TableHead>Catatan</TableHead>
                   <TableHead>Tanggal Input</TableHead>
                   <TableHead>Aksi</TableHead>
                 </TableRow>
@@ -128,6 +141,7 @@ export function AdminPage({ adminData, onAddAdminData, onDeleteAdminData }: Admi
                       <TableCell>{index + 1}</TableCell>
                       <TableCell className="font-medium">{item.inet}</TableCell>
                       <TableCell>{item.scOrder}</TableCell>
+                      <TableCell className="text-muted-foreground">{item.note || '-'}</TableCell>
                       <TableCell>{new Date(item.createdAt).toLocaleDateString('id-ID')}</TableCell>
                       <TableCell>
                         <Button
