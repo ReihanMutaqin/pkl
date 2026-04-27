@@ -98,18 +98,18 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
   const [searchTerm, setSearchTerm] = useState('');
   const [editingData, setEditingData] = useState<PKLData | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  
+
   // State untuk peringatan data sudah ada
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const [existingData, setExistingData] = useState<PKLData | null>(null);
-  
+
   // State untuk expand/collapse daftar inet
   const [showInetList, setShowInetList] = useState(false);
   const [openInetCombobox, setOpenInetCombobox] = useState(false);
 
   // State untuk filter tanggal pada badge "sudah diupdate"
   const [inetFilterDate, setInetFilterDate] = useState<string>('today');
-  
+
   // State untuk expand/collapse per tanggal di daftar progress
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
   const [copiedDate, setCopiedDate] = useState<string | null>(null);
@@ -265,7 +265,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
       if (selectedAdminData) {
         // Cek apakah data dengan inet ini sudah ada
         const existing = pklData.find(pkl => pkl.inet === selectedInet);
-        
+
         if (existing) {
           // Update data yang sudah ada
           onEditPKL({
@@ -291,7 +291,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
           });
           toast.success('Progress PKL berhasil disimpan!');
         }
-        
+
         setFormData({ tiket: '', fallout: '', wonum: '', statusBima: '' });
         setSelectedInet('');
         setShowDuplicateWarning(false);
@@ -325,7 +325,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
       <Card className="border-green-200">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-2">
-            <button 
+            <button
               onClick={() => setShowInetList(!showInetList)}
               className="flex-1 flex items-center justify-between hover:bg-green-50/50 -mx-2 px-2 py-1 rounded-lg transition-colors text-left"
             >
@@ -368,7 +368,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
             </Select>
           </div>
         </CardHeader>
-        
+
         {showInetList && (
           <CardContent className="pt-0">
             {filteredAdminByDate.length === 0 ? (
@@ -382,11 +382,10 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
                   return (
                     <div
                       key={item.id}
-                      className={`px-3 py-1.5 rounded-full text-sm border transition-all cursor-default ${
-                        isUpdated
+                      className={`px-3 py-1.5 rounded-full text-sm border transition-all cursor-default ${isUpdated
                           ? 'bg-green-100 border-green-400 text-green-800'
                           : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
-                      }`}
+                        }`}
                       title={`SC: ${item.scOrder}${isUpdated ? ' - Sudah diupdate' : ' - Belum diupdate'}`}
                     >
                       <span className="flex items-center gap-1.5">
@@ -404,7 +403,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
           </CardContent>
         )}
       </Card>
-      
+
       <Card className="w-full border-primary/20">
         <CardHeader className="bg-primary/5">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -504,7 +503,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
                       <span className="text-lg leading-none block">📝</span>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-sm mb-0.5">Catatan Admin:</h4>
+                      <h4 className="font-semibold text-sm mb-0.5">Notes :</h4>
                       <p className="text-sm font-medium">{adminData.find(d => d.inet === selectedInet)?.note}</p>
                     </div>
                   </div>
@@ -545,11 +544,10 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
                       variant="outline"
                       size="sm"
                       onClick={() => handleCopyField('inet')}
-                      className={`flex-1 gap-2 transition-all ${
-                        copiedField === 'inet'
+                      className={`flex-1 gap-2 transition-all ${copiedField === 'inet'
                           ? 'border-green-500 text-green-600 bg-green-50'
                           : 'border-blue-300 text-blue-600 hover:bg-blue-50 hover:border-blue-400'
-                      }`}
+                        }`}
                     >
                       {copiedField === 'inet' ? (
                         <Check className="w-4 h-4" />
@@ -563,11 +561,10 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
                       variant="outline"
                       size="sm"
                       onClick={() => handleCopyField('sc')}
-                      className={`flex-1 gap-2 transition-all ${
-                        copiedField === 'sc'
+                      className={`flex-1 gap-2 transition-all ${copiedField === 'sc'
                           ? 'border-green-500 text-green-600 bg-green-50'
                           : 'border-purple-300 text-purple-600 hover:bg-purple-50 hover:border-purple-400'
-                      }`}
+                        }`}
                     >
                       {copiedField === 'sc' ? (
                         <Check className="w-4 h-4" />
@@ -582,7 +579,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
                   </p>
                 </div>
               )}
-              
+
               <div className="space-y-2">
                 <Label htmlFor="tiket">Tiket</Label>
                 <Input
@@ -593,7 +590,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
                   required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="fallout">Fallout</Label>
                 <Input
@@ -604,7 +601,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
                   required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="wonum">WONUM</Label>
                 <Input
@@ -615,7 +612,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
                   required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="statusBima">STATUS BIMA</Label>
                 <Select
@@ -635,7 +632,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
                 </Select>
               </div>
             </div>
-            
+
             <Button type="submit" className="w-full" disabled={!selectedInet}>
               <PlusCircle className="w-4 h-4 mr-2" />
               Simpan Progress PKL
@@ -676,7 +673,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
               <p className="text-xs">Mulai input progress di form di atas</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin">
               {sortedDates.map(dateKey => {
                 const allItems = groupedByDate[dateKey];
                 const filteredItems = allItems.filter(filterItem);
@@ -692,11 +689,10 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
                     {/* Date Group Header */}
                     <button
                       onClick={() => toggleDateExpand(dateKey)}
-                      className={`w-full flex items-center justify-between p-4 transition-colors text-left ${
-                        isDateToday
+                      className={`w-full flex items-center justify-between p-4 transition-colors text-left ${isDateToday
                           ? 'bg-green-50 hover:bg-green-100'
                           : 'bg-slate-50 hover:bg-slate-100'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         <CalendarCheck className={`w-4 h-4 ${isDateToday ? 'text-green-600' : 'text-slate-500'}`} />
