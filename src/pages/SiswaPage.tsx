@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import type { AdminData, PKLData } from '@/types/pkl';
 import { STATUS_BIMA_OPTIONS, getStatusLabel } from '@/types/pkl';
-import { PlusCircle, Trash2, Edit, ClipboardList, Search, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Wifi, CalendarDays, CalendarCheck, Clock, Copy, Check, ChevronsUpDown } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, ClipboardList, Search, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Wifi, CalendarDays, CalendarCheck, Clock, Copy, Check, ChevronsUpDown, Trophy, Star, PartyPopper } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -115,6 +115,9 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
   const [copiedDate, setCopiedDate] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<'inet' | 'sc' | null>(null);
 
+  // State untuk milestone celebration popup
+  const [milestonePopup, setMilestonePopup] = useState<{ show: boolean; milestone: number }>({ show: false, milestone: 0 });
+
   const handleCopyField = (field: 'inet' | 'sc') => {
     const adminItem = adminData.find(d => d.inet === selectedInet);
     if (!adminItem) return;
@@ -127,6 +130,29 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
   };
 
   const today = getTodayWIB();
+
+  // Cek milestone setiap kali pklData berubah
+  useEffect(() => {
+    const MILESTONE_START = 500;
+    const MILESTONE_STEP = 100;
+    const total = pklData.length;
+
+    // Ambil daftar milestone yang sudah pernah ditampilkan dari localStorage
+    const shownKey = 'pkl_milestones_shown';
+    const shownRaw = localStorage.getItem(shownKey);
+    const shownSet: number[] = shownRaw ? JSON.parse(shownRaw) : [];
+
+    // Hitung milestone tertinggi yang sudah dilewati
+    if (total >= MILESTONE_START) {
+      const currentMilestone = Math.floor(total / MILESTONE_STEP) * MILESTONE_STEP;
+      if (currentMilestone >= MILESTONE_START && !shownSet.includes(currentMilestone)) {
+        // Tandai milestone ini sudah ditampilkan
+        const updatedShown = [...shownSet, currentMilestone];
+        localStorage.setItem(shownKey, JSON.stringify(updatedShown));
+        setMilestonePopup({ show: true, milestone: currentMilestone });
+      }
+    }
+  }, [pklData.length]);
 
   // Semua tanggal unik dari adminData.createdAt (descending) — untuk dropdown
   const uniqueAdminDates = useMemo(() => {
@@ -822,6 +848,74 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
           )}
         </CardContent>
       </Card>
+
+      {/* Milestone Celebration Popup */}
+      <Dialog open={milestonePopup.show} onOpenChange={(open) => !open && setMilestonePopup(prev => ({ ...prev, show: false }))}>
+        <DialogContent className="sm:max-w-[460px] overflow-hidden p-0 border-0">
+          {/* Gradient header */}
+          <div className="relative bg-gradient-to-br from-yellow-400 via-orange-400 to-pink-500 pt-10 pb-8 px-8 text-center">
+            {/* Decorative confetti circles */}
+            <div className="absolute top-3 left-6 w-4 h-4 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="absolute top-5 left-16 w-2 h-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="absolute top-3 right-8 w-3 h-3 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div className="absolute top-6 right-20 w-2 h-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: '450ms' }} />
+            <div className="absolute bottom-4 left-10 w-2 h-2 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: '200ms' }} />
+            <div className="absolute bottom-3 right-12 w-3 h-3 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '350ms' }} />
+
+            {/* Trophy Icon */}
+            <div className="flex justify-center mb-4">
+              <div className="bg-white/20 backdrop-blur-sm rounded-full p-4 shadow-lg">
+                <Trophy className="w-14 h-14 text-white drop-shadow-lg" />
+              </div>
+            </div>
+
+            {/* Stars */}
+            <div className="flex justify-center gap-2 mb-3">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="w-5 h-5 text-white fill-white drop-shadow animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
+              ))}
+            </div>
+
+            <h2 className="text-4xl font-black text-white drop-shadow-md tracking-tight">
+              🎉 Selamat!
+            </h2>
+          </div>
+
+          {/* Body */}
+          <div className="px-8 py-6 text-center bg-white">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <PartyPopper className="w-5 h-5 text-orange-500" />
+              <span className="text-lg font-bold text-gray-800">Kalian Hebat!</span>
+              <PartyPopper className="w-5 h-5 text-orange-500 scale-x-[-1]" />
+            </div>
+
+            <p className="text-gray-600 text-sm mb-4">
+              Tim PKL berhasil mencapai milestone luar biasa!
+            </p>
+
+            {/* Milestone number highlight */}
+            <div className="relative inline-block mb-4">
+              <div className="bg-gradient-to-r from-orange-100 to-yellow-100 border-2 border-orange-300 rounded-2xl px-8 py-4 shadow-inner">
+                <p className="text-xs font-semibold text-orange-500 uppercase tracking-widest mb-1">Total Pengerjaan SC</p>
+                <p className="text-6xl font-black bg-gradient-to-br from-orange-500 to-pink-600 bg-clip-text text-transparent leading-none">
+                  {milestonePopup.milestone}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-gray-500 text-xs mb-6">
+              Pertahankan semangat dan terus tingkatkan produktivitas! 💪
+            </p>
+
+            <Button
+              onClick={() => setMilestonePopup(prev => ({ ...prev, show: false }))}
+              className="w-full bg-gradient-to-r from-orange-400 to-pink-500 hover:from-orange-500 hover:to-pink-600 text-white font-bold py-3 rounded-xl shadow-md hover:shadow-lg transition-all text-base"
+            >
+              Siap, Lanjut Bekerja! 🚀
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
