@@ -75,6 +75,20 @@ function App() {
     }
   };
 
+  const handleEditAdminData = async (updatedData: AdminData) => {
+    try {
+      const { id, ...dataToUpdate } = updatedData;
+      await updateDoc(doc(db, 'adminData', id), {
+        ...dataToUpdate,
+        updatedAt: new Date().toISOString()
+      });
+      toast.success('Data master berhasil diupdate!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Gagal mengupdate data master');
+    }
+  };
+
   // Handler untuk Siswa PKL
   const handleAddPKL = async (newData: Omit<PKLData, 'id' | 'createdAt' | 'updatedAt'>) => {
     const now = new Date().toISOString();
@@ -127,6 +141,7 @@ function App() {
                 adminData={adminData}
                 onAddAdminData={handleAddAdminData}
                 onDeleteAdminData={handleDeleteAdminData}
+                onEditAdminData={handleEditAdminData}
               />
             } 
           />
