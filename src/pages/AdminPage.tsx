@@ -31,10 +31,10 @@ export function AdminPage({ adminData, onAddAdminData, onDeleteAdminData, onEdit
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.inet && formData.scOrder) {
-      // Cek apakah inet sudah ada
-      const exists = adminData.some(item => item.inet.toLowerCase() === formData.inet.toLowerCase());
+      // Cek apakah SC ORDER sudah ada
+      const exists = adminData.some(item => item.scOrder.toLowerCase() === formData.scOrder.toLowerCase());
       if (exists) {
-        toast.error('Inet sudah ada dalam database!');
+        toast.error('SC ORDER sudah ada dalam database!');
         return;
       }
       onAddAdminData(formData);
@@ -54,12 +54,12 @@ export function AdminPage({ adminData, onAddAdminData, onDeleteAdminData, onEdit
       toast.error('Inet dan SC ORDER tidak boleh kosong!');
       return;
     }
-    // Cek duplikat inet (kecuali item yang sedang diedit)
+    // Cek duplikat SC ORDER (kecuali item yang sedang diedit)
     const duplicate = adminData.some(
-      item => item.id !== editingItem.id && item.inet.toLowerCase() === editingItem.inet.toLowerCase()
+      item => item.id !== editingItem.id && item.scOrder.toLowerCase() === editingItem.scOrder.toLowerCase()
     );
     if (duplicate) {
-      toast.error('Inet sudah ada dalam database!');
+      toast.error('SC ORDER sudah ada dalam database!');
       return;
     }
     onEditAdminData(editingItem);
