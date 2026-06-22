@@ -65,6 +65,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
 export function Dashboard({ adminData, pklData }: DashboardProps) {
   const [showViewAll, setShowViewAll] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedName, setSelectedName] = useState<string>(''); // '' = semua
   const [copied, setCopied] = useState(false);
   const [expandedNames, setExpandedNames] = useState<Set<string>>(new Set());
 
@@ -149,14 +150,32 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
     }
   ];
 
-  const filteredData = pklData.filter(item => 
-    item.tiket.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.fallout.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.wonum.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.inet.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.scOrder.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.statusBima.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Daftar nama unik untuk filter chips
+  const uniqueNames = Array.from(
+    new Set(pklData.map(item => (item.namaInput?.trim() || 'Tidak Diketahui').replace(/\b\w/g, c => c.toUpperCase())))
+  ).sort();
+
+  // Hitung jumlah pekerjaan per nama (semua status)
+  const countByName = pklData.reduce<Record<string, number>>((acc, item) => {
+    const name = (item.namaInput?.trim() || 'Tidak Diketahui').replace(/\b\w/g, c => c.toUpperCase());
+    acc[name] = (acc[name] || 0) + 1;
+    return acc;
+  }, {});
+
+  const filteredData = pklData.filter(item => {
+    const name = (item.namaInput?.trim() || 'Tidak Diketahui').replace(/\b\w/g, c => c.toUpperCase());
+    const matchName = selectedName === '' || name === selectedName;
+    const q = searchTerm.toLowerCase();
+    const matchSearch = q === '' ||
+      item.tiket.toLowerCase().includes(q) ||
+      item.fallout.toLowerCase().includes(q) ||
+      item.wonum.toLowerCase().includes(q) ||
+      item.inet.toLowerCase().includes(q) ||
+      item.scOrder.toLowerCase().includes(q) ||
+      item.statusBima.toLowerCase().includes(q) ||
+      name.toLowerCase().includes(q);
+    return matchName && matchSearch;
+  });
 
   // Leaderboard: hitung jumlah pekerjaan per siswa (semua status), case-insensitive
   const leaderboardMap = pklData.reduce<Record<string, { displayName: string; count: number; statusBreakdown: Record<string, number> }>>((acc, item) => {
@@ -199,10 +218,44 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
   };
 
   const handleDownloadCSV = () => {
-    const headers = ['No', 'Nama', 'Inet', 'SC ORDER', 'Tiket', 'Fallout', 'WONUM', 'STATUS BIMA', 'Tanggal'];
-    const rows = filteredData.map((item, index) => [
+    const escape = (val: string | number) => {
+      const str = String(val);
+      return str.includes(',') || str.includes('"') || str.includes('\n')
+        ? `"${str.replace(/"/g, '""')}"`
+        : str;
+    };
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+    const filterInfo = selectedName ? `Filter Nama: ${selectedName}` : 'Filter Nama: Semua Siswa';
+
+    // === BAGIAN 1: INFO LAPORAN ===
+    const infoSection = [
+      ['LAPORAN DATA PROGRESS PKL'],
+      [`Tanggal Unduh,${dateStr}`],
+      [filterInfo],
+      [`Total Data,${filteredData.length}`],
+      [''],
+    ];
+
+    // === BAGIAN 2: RINGKASAN PER SISWA ===
+    const summaryHeader = ['RINGKASAN PEKERJAAN PER SISWA'];
+    const summaryColHeader = ['Nama Siswa', 'Total Pekerjaan', 'COMPWORK', 'WAPPR', 'INSTCOMP', 'ACTCOMP', 'CANCLWORK', 'WORKFAIL'];
+    const summaryRows = uniqueNames.map(name => {
+      const items = filteredData.filter(d =>
+        (d.namaInput?.trim() || 'Tidak Diketahui').replace(/\b\w/g, c => c.toUpperCase()) === name
+      );
+      if (items.length === 0) return null;
+      const count = (status: string) => items.filter(d => d.statusBima === status).length;
+      return [name, items.length, count('COMPWORK'), count('WAPPR'), count('INSTCOMP'), count('ACTCOMP'), count('CANCLWORK'), count('WORKFAIL')];
+    }).filter(Boolean) as (string | number)[][];
+
+    // === BAGIAN 3: DETAIL DATA ===
+    const detailHeader = ['DETAIL DATA PROGRESS PKL'];
+    const detailColHeader = ['No', 'Nama Siswa', 'Inet', 'SC ORDER', 'Tiket', 'Fallout', 'WONUM', 'Status BIMA', 'Tanggal Input'];
+    const detailRows = filteredData.map((item, index) => [
       index + 1,
-      item.namaInput || '-',
+      (item.namaInput?.trim() || '-').replace(/\b\w/g, c => c.toUpperCase()),
       item.inet,
       item.scOrder,
       item.tiket,
@@ -212,27 +265,23 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
       new Date(item.createdAt).toLocaleDateString('id-ID')
     ]);
 
-    // Escape nilai agar aman di CSV
-    const escape = (val: string | number) => {
-      const str = String(val);
-      return str.includes(',') || str.includes('"') || str.includes('\n')
-        ? `"${str.replace(/"/g, '""')}"`
-        : str;
-    };
+    const lines: string[] = [
+      ...infoSection.map(r => r.map(escape).join(',')),
+      [summaryHeader[0]].map(escape).join(','),
+      summaryColHeader.map(escape).join(','),
+      ...summaryRows.map(r => r.map(escape).join(',')),
+      '',
+      [detailHeader[0]].map(escape).join(','),
+      detailColHeader.map(escape).join(','),
+      ...detailRows.map(r => r.map(escape).join(','))
+    ];
 
-    const csvContent = [
-      headers.map(escape).join(','),
-      ...rows.map(r => r.map(escape).join(','))
-    ].join('\n');
-
-    const bom = '\uFEFF'; // BOM agar Excel bisa baca UTF-8
-    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    const now = new Date();
-    const dateStr = now.toISOString().slice(0, 10);
     link.href = url;
-    link.download = `data-progress-pkl-${dateStr}.csv`;
+    link.download = `laporan-progress-pkl-${now.toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -437,37 +486,39 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
       </Card>
 
       {/* Dialog View All */}
-      <Dialog open={showViewAll} onOpenChange={setShowViewAll}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
+      <Dialog open={showViewAll} onOpenChange={(open) => { setShowViewAll(open); if (!open) { setSelectedName(''); setSearchTerm(''); } }}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col gap-0 p-0">
+          {/* ── Header ── */}
+          <DialogHeader className="px-6 pt-5 pb-4 border-b">
             <DialogTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <FileSpreadsheet className="w-5 h-5" />
+              <span className="flex items-center gap-2 text-base font-semibold">
+                <FileSpreadsheet className="w-5 h-5 text-primary" />
                 Semua Data Progress PKL
               </span>
               <div className="flex items-center gap-2">
-                <Button 
-                  onClick={handleCopyToClipboard} 
-                  variant="outline" 
+                <Button
+                  onClick={handleCopyToClipboard}
+                  variant="outline"
                   size="sm"
-                  className="gap-2"
+                  className="gap-1.5 text-xs h-8"
                 >
-                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  {copied ? 'Tersalin!' : 'Copy ke Spreadsheet'}
+                  {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? 'Tersalin!' : 'Copy'}
                 </Button>
                 <Button
                   onClick={handleDownloadCSV}
                   variant="outline"
                   size="sm"
-                  className="gap-2"
-                  title="Download data sebagai file CSV"
+                  className="gap-1.5 text-xs h-8"
+                  title="Download laporan lengkap CSV"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-3.5 h-3.5" />
                   Download CSV
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
                   onClick={() => setShowViewAll(false)}
                 >
                   <X className="w-4 h-4" />
@@ -475,68 +526,131 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
               </div>
             </DialogTitle>
           </DialogHeader>
-          
-          <div className="space-y-4 overflow-hidden flex flex-col">
+
+          <div className="flex flex-col gap-3 overflow-hidden flex-1 px-6 py-4">
+
+            {/* ── Kartu ringkasan per siswa ── */}
+            {uniqueNames.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                {/* Chip "Semua" */}
+                <button
+                  onClick={() => setSelectedName('')}
+                  className={`flex items-center justify-between rounded-xl border px-3 py-2 text-left transition-all ${
+                    selectedName === ''
+                      ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                      : 'border-border bg-muted/40 hover:bg-muted'
+                  }`}
+                >
+                  <span className="text-xs font-semibold truncate">Semua Siswa</span>
+                  <span className={`ml-2 shrink-0 text-sm font-bold ${
+                    selectedName === '' ? 'text-primary-foreground' : 'text-primary'
+                  }`}>{pklData.length}</span>
+                </button>
+
+                {/* Chip per nama */}
+                {uniqueNames.map(name => (
+                  <button
+                    key={name}
+                    onClick={() => setSelectedName(prev => prev === name ? '' : name)}
+                    className={`flex items-center justify-between rounded-xl border px-3 py-2 text-left transition-all ${
+                      selectedName === name
+                        ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                        : 'border-border bg-muted/40 hover:bg-muted'
+                    }`}
+                  >
+                    <span className="text-xs font-semibold truncate">{name}</span>
+                    <span className={`ml-2 shrink-0 text-sm font-bold ${
+                      selectedName === name ? 'text-primary-foreground' : 'text-primary'
+                    }`}>{countByName[name] ?? 0}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* ── Search ── */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
-                placeholder="Cari data..."
+                placeholder="Cari tiket, inet, SC ORDER, status..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-9 h-9 text-sm"
               />
             </div>
-            
+
+            {/* ── Info baris aktif ── */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>
+                {selectedName
+                  ? <><span className="font-semibold text-foreground">{selectedName}</span> — {filteredData.length} pekerjaan</>
+                  : <>Menampilkan <span className="font-semibold text-foreground">{filteredData.length}</span> dari {pklData.length} total data</>}
+              </span>
+              {(selectedName || searchTerm) && (
+                <button
+                  onClick={() => { setSelectedName(''); setSearchTerm(''); }}
+                  className="text-primary underline hover:no-underline text-xs"
+                >
+                  Reset filter
+                </button>
+              )}
+            </div>
+
+            {/* ── Tabel ── */}
             <div className="overflow-auto flex-1 border rounded-lg">
               <Table>
-                <TableHeader className="sticky top-0 bg-white">
-                  <TableRow>
-                    <TableHead className="w-12">No</TableHead>
-                    <TableHead>Nama</TableHead>
-                    <TableHead>Inet</TableHead>
-                    <TableHead>SC ORDER</TableHead>
-                    <TableHead>Tiket</TableHead>
-                    <TableHead>Fallout</TableHead>
-                    <TableHead>WONUM</TableHead>
-                    <TableHead>STATUS BIMA</TableHead>
-                    <TableHead>Tanggal</TableHead>
+                <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
+                  <TableRow className="text-xs">
+                    <TableHead className="w-10 text-center">#</TableHead>
+                    <TableHead className="min-w-[130px]">Nama Siswa</TableHead>
+                    <TableHead className="min-w-[110px]">Inet</TableHead>
+                    <TableHead className="min-w-[140px]">SC ORDER</TableHead>
+                    <TableHead className="min-w-[110px]">Tiket</TableHead>
+                    <TableHead className="min-w-[80px]">Fallout</TableHead>
+                    <TableHead className="min-w-[110px]">WONUM</TableHead>
+                    <TableHead className="min-w-[130px]">Status BIMA</TableHead>
+                    <TableHead className="min-w-[90px]">Tanggal</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                        Tidak ada data
+                      <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                        <div className="flex flex-col items-center gap-2">
+                          <Search className="w-8 h-8 opacity-30" />
+                          <p>Tidak ada data yang sesuai filter</p>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredData.map((item, index) => (
-                      <TableRow key={item.id}>
-                        <TableCell>{index + 1}</TableCell>
-                        <TableCell className="font-medium text-primary">{item.namaInput || '-'}</TableCell>
-                        <TableCell className="font-medium">{item.inet}</TableCell>
-                        <TableCell>{item.scOrder}</TableCell>
-                        <TableCell>{item.tiket}</TableCell>
-                        <TableCell>{item.fallout}</TableCell>
-                        <TableCell>{item.wonum}</TableCell>
+                      <TableRow key={item.id} className="text-sm hover:bg-muted/40 transition-colors">
+                        <TableCell className="text-center text-muted-foreground text-xs">{index + 1}</TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(item.statusBima)}>
+                          <span className="font-semibold text-primary text-xs">
+                            {(item.namaInput?.trim() || '-').replace(/\b\w/g, c => c.toUpperCase())}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-medium text-xs">{item.inet}</TableCell>
+                        <TableCell className="text-xs text-blue-700 break-all">{item.scOrder}</TableCell>
+                        <TableCell className="text-xs">{item.tiket}</TableCell>
+                        <TableCell className="text-xs">{item.fallout}</TableCell>
+                        <TableCell className="text-xs">{item.wonum}</TableCell>
+                        <TableCell>
+                          <Badge className={`${getStatusColor(item.statusBima)} text-[10px] px-1.5 py-0`}>
                             {item.statusBima}
                           </Badge>
-                          <div className="text-xs text-muted-foreground mt-0.5">
+                          <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
                             {getStatusLabel(item.statusBima)}
                           </div>
                         </TableCell>
-                        <TableCell>{new Date(item.createdAt).toLocaleDateString('id-ID')}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {new Date(item.createdAt).toLocaleDateString('id-ID')}
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
                 </TableBody>
               </Table>
-            </div>
-            
-            <div className="text-sm text-muted-foreground text-center">
-              Total: {filteredData.length} data
             </div>
           </div>
         </DialogContent>
