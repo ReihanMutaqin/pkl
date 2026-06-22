@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import * as XLSX from 'xlsx';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -217,42 +218,65 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownloadCSV = () => {
-    const escape = (val: string | number) => {
-      const str = String(val);
-      return str.includes(',') || str.includes('"') || str.includes('\n')
-        ? `"${str.replace(/"/g, '""')}"`
-        : str;
-    };
-
+  const handleDownloadXLSX = () => {
     const now = new Date();
     const dateStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
-    const filterInfo = selectedName ? `Filter Nama: ${selectedName}` : 'Filter Nama: Semua Siswa';
+    const filterLabel = selectedName ? selectedName : 'Semua Siswa';
+    const wb = XLSX.utils.book_new();
 
-    // === BAGIAN 1: INFO LAPORAN ===
-    const infoSection = [
-      ['LAPORAN DATA PROGRESS PKL'],
-      [`Tanggal Unduh,${dateStr}`],
-      [filterInfo],
-      [`Total Data,${filteredData.length}`],
-      [''],
+    // ─────────────────────────────────────────
+    // SHEET 1: RINGKASAN PER SISWA
+    // ─────────────────────────────────────────
+    const summaryData: (string | number)[][] = [
+      // Baris info
+      ['LAPORAN PROGRESS PKL', '', '', '', '', '', '', ''],
+      ['Tanggal Unduh', dateStr, '', '', '', '', '', ''],
+      ['Filter', filterLabel, '', '', '', '', '', ''],
+      ['Total Data', filteredData.length, '', '', '', '', '', ''],
+      [],
+      // Header tabel ringkasan
+      ['Nama Siswa', 'Total', 'COMPWORK', 'WAPPR', 'INSTCOMP', 'ACTCOMP', 'CANCLWORK', 'WORKFAIL'],
     ];
 
-    // === BAGIAN 2: RINGKASAN PER SISWA ===
-    const summaryHeader = ['RINGKASAN PEKERJAAN PER SISWA'];
-    const summaryColHeader = ['Nama Siswa', 'Total Pekerjaan', 'COMPWORK', 'WAPPR', 'INSTCOMP', 'ACTCOMP', 'CANCLWORK', 'WORKFAIL'];
-    const summaryRows = uniqueNames.map(name => {
+    // Baris data ringkasan (hanya nama yang ada di filteredData)
+    const activeNames = Array.from(
+      new Set(filteredData.map(d => (d.namaInput?.trim() || 'Tidak Diketahui').replace(/\b\w/g, c => c.toUpperCase())))
+    ).sort();
+
+    activeNames.forEach(name => {
       const items = filteredData.filter(d =>
         (d.namaInput?.trim() || 'Tidak Diketahui').replace(/\b\w/g, c => c.toUpperCase()) === name
       );
-      if (items.length === 0) return null;
-      const count = (status: string) => items.filter(d => d.statusBima === status).length;
-      return [name, items.length, count('COMPWORK'), count('WAPPR'), count('INSTCOMP'), count('ACTCOMP'), count('CANCLWORK'), count('WORKFAIL')];
-    }).filter(Boolean) as (string | number)[][];
+      const cnt = (s: string) => items.filter(d => d.statusBima === s).length;
+      summaryData.push([
+        name,
+        items.length,
+        cnt('COMPWORK'),
+        cnt('WAPPR'),
+        cnt('INSTCOMP'),
+        cnt('ACTCOMP'),
+        cnt('CANCLWORK'),
+        cnt('WORKFAIL'),
+      ]);
+    });
 
-    // === BAGIAN 3: DETAIL DATA ===
-    const detailHeader = ['DETAIL DATA PROGRESS PKL'];
-    const detailColHeader = ['No', 'Nama Siswa', 'Inet', 'SC ORDER', 'Tiket', 'Fallout', 'WONUM', 'Status BIMA', 'Tanggal Input'];
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+
+    // Lebar kolom sheet ringkasan
+    wsSummary['!cols'] = [
+      { wch: 28 }, { wch: 10 }, { wch: 12 }, { wch: 10 },
+      { wch: 12 }, { wch: 10 }, { wch: 13 }, { wch: 12 },
+    ];
+
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan');
+
+    // ─────────────────────────────────────────
+    // SHEET 2: DETAIL DATA (dengan AutoFilter)
+    // ─────────────────────────────────────────
+    const detailHeader = [
+      'No', 'Nama Siswa', 'Inet', 'SC ORDER', 'Tiket', 'Fallout', 'WONUM', 'Status BIMA', 'Keterangan Status', 'Tanggal Input',
+    ];
+
     const detailRows = filteredData.map((item, index) => [
       index + 1,
       (item.namaInput?.trim() || '-').replace(/\b\w/g, c => c.toUpperCase()),
@@ -262,28 +286,40 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
       item.fallout,
       item.wonum,
       item.statusBima,
-      new Date(item.createdAt).toLocaleDateString('id-ID')
+      getStatusLabel(item.statusBima),
+      new Date(item.createdAt).toLocaleDateString('id-ID'),
     ]);
 
-    const lines: string[] = [
-      ...infoSection.map(r => r.map(escape).join(',')),
-      [summaryHeader[0]].map(escape).join(','),
-      summaryColHeader.map(escape).join(','),
-      ...summaryRows.map(r => r.map(escape).join(',')),
-      '',
-      [detailHeader[0]].map(escape).join(','),
-      detailColHeader.map(escape).join(','),
-      ...detailRows.map(r => r.map(escape).join(','))
+    const wsDetail = XLSX.utils.aoa_to_sheet([detailHeader, ...detailRows]);
+
+    // Auto-filter pada seluruh kolom header
+    const lastCol = XLSX.utils.encode_col(detailHeader.length - 1);
+    const lastRow = detailRows.length + 1;
+    wsDetail['!autofilter'] = { ref: `A1:${lastCol}${lastRow}` };
+
+    // Lebar kolom sheet detail
+    wsDetail['!cols'] = [
+      { wch: 5 },  // No
+      { wch: 26 }, // Nama
+      { wch: 14 }, // Inet
+      { wch: 22 }, // SC ORDER
+      { wch: 18 }, // Tiket
+      { wch: 10 }, // Fallout
+      { wch: 20 }, // WONUM
+      { wch: 13 }, // Status
+      { wch: 24 }, // Keterangan
+      { wch: 14 }, // Tanggal
     ];
 
-    const bom = '\uFEFF';
-    const blob = new Blob([bom + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `laporan-progress-pkl-${now.toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    // Freeze baris pertama (header tetap terlihat saat scroll)
+    wsDetail['!freeze'] = { xSplit: 0, ySplit: 1 };
+
+    XLSX.utils.book_append_sheet(wb, wsDetail, 'Detail Data');
+
+    // ─────────────────────────────────────────
+    // DOWNLOAD
+    // ─────────────────────────────────────────
+    XLSX.writeFile(wb, `laporan-progress-pkl-${now.toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (
@@ -506,14 +542,14 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
                   {copied ? 'Tersalin!' : 'Copy'}
                 </Button>
                 <Button
-                  onClick={handleDownloadCSV}
+                  onClick={handleDownloadXLSX}
                   variant="outline"
                   size="sm"
                   className="gap-1.5 text-xs h-8"
-                  title="Download laporan lengkap CSV"
+                  title="Download laporan lengkap Excel (.xlsx)"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  Download CSV
+                  Download Excel
                 </Button>
                 <Button
                   variant="ghost"
