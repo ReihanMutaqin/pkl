@@ -551,14 +551,6 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
                   <Download className="w-3.5 h-3.5" />
                   Download Excel
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => setShowViewAll(false)}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
               </div>
             </DialogTitle>
           </DialogHeader>
