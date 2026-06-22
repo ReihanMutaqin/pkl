@@ -25,7 +25,8 @@ import {
   X,
   FileSpreadsheet,
   Trophy,
-  ChevronDown
+  ChevronDown,
+  Download
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -195,6 +196,45 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
     navigator.clipboard.writeText(csvContent);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownloadCSV = () => {
+    const headers = ['No', 'Nama', 'Inet', 'SC ORDER', 'Tiket', 'Fallout', 'WONUM', 'STATUS BIMA', 'Tanggal'];
+    const rows = filteredData.map((item, index) => [
+      index + 1,
+      item.namaInput || '-',
+      item.inet,
+      item.scOrder,
+      item.tiket,
+      item.fallout,
+      item.wonum,
+      item.statusBima,
+      new Date(item.createdAt).toLocaleDateString('id-ID')
+    ]);
+
+    // Escape nilai agar aman di CSV
+    const escape = (val: string | number) => {
+      const str = String(val);
+      return str.includes(',') || str.includes('"') || str.includes('\n')
+        ? `"${str.replace(/"/g, '""')}"`
+        : str;
+    };
+
+    const csvContent = [
+      headers.map(escape).join(','),
+      ...rows.map(r => r.map(escape).join(','))
+    ].join('\n');
+
+    const bom = '\uFEFF'; // BOM agar Excel bisa baca UTF-8
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    link.href = url;
+    link.download = `data-progress-pkl-${dateStr}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -414,6 +454,16 @@ export function Dashboard({ adminData, pklData }: DashboardProps) {
                 >
                   {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   {copied ? 'Tersalin!' : 'Copy ke Spreadsheet'}
+                </Button>
+                <Button
+                  onClick={handleDownloadCSV}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  title="Download data sebagai file CSV"
+                >
+                  <Download className="w-4 h-4" />
+                  Download CSV
                 </Button>
                 <Button 
                   variant="ghost" 
