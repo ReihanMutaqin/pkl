@@ -23,7 +23,6 @@ import {
   Search,
   Copy,
   Check,
-  X,
   FileSpreadsheet,
   Trophy,
   ChevronDown,
