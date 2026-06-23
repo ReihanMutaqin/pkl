@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import type { AdminData, PKLData } from '@/types/pkl';
 import { STATUS_BIMA_OPTIONS, getStatusLabel } from '@/types/pkl';
-import { PlusCircle, Trash2, Edit, ClipboardList, Search, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Wifi, CalendarDays, CalendarCheck, Clock, Copy, Check, ChevronsUpDown, Trophy, Star, PartyPopper } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, ClipboardList, Search, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Wifi, CalendarDays, CalendarCheck, Clock, Copy, Check, ChevronsUpDown, Trophy, Star, PartyPopper, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -118,6 +118,9 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
   // State untuk milestone celebration popup
   const [milestonePopup, setMilestonePopup] = useState<{ show: boolean; milestone: number }>({ show: false, milestone: 0 });
 
+  // State untuk admin reset mode (Ctrl+M)
+  const [isResetMode, setIsResetMode] = useState(false);
+
   const handleCopyField = (field: 'inet' | 'sc') => {
     const adminItem = adminData.find(d => d.inet === selectedInet);
     if (!adminItem) return;
@@ -130,6 +133,42 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
   };
 
   const today = getTodayWIB();
+
+  // Shortcut Ctrl+M untuk toggle admin reset mode
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.ctrlKey && e.key === 'm') {
+      e.preventDefault();
+      setIsResetMode(prev => {
+        const next = !prev;
+        if (next) {
+          toast.info('🔑 Mode Reset Aktif — Klik badge hijau untuk mereset ke putih', { duration: 3000 });
+        } else {
+          toast.info('Mode Reset Dinonaktifkan', { duration: 1500 });
+        }
+        return next;
+      });
+    }
+    // Tekan Escape untuk keluar dari mode reset
+    if (e.key === 'Escape' && isResetMode) {
+      setIsResetMode(false);
+      toast.info('Mode Reset Dinonaktifkan', { duration: 1500 });
+    }
+  }, [isResetMode]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  // Handler reset inet: hapus semua PKLData yang terkait inet ini
+  const handleResetInet = (adminItem: AdminData) => {
+    const relatedPKL = pklData.filter(
+      item => item.adminDataId === adminItem.id || item.inet === adminItem.inet
+    );
+    if (relatedPKL.length === 0) return;
+    relatedPKL.forEach(item => onDeletePKL(item.id));
+    toast.success(`✅ Inet ${adminItem.inet} berhasil direset ke belum dikerjakan`);
+  };
 
   // Cek milestone setiap kali pklData berubah
   useEffect(() => {
@@ -405,18 +444,27 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
               <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
                 {filteredAdminByDate.map((item) => {
                   const isUpdated = getIsDataUpdated(item);
+                  const canReset = isResetMode && isUpdated;
                   return (
                     <div
                       key={item.id}
-                      className={`px-3 py-1.5 rounded-full text-sm border transition-all cursor-default ${isUpdated
-                          ? 'bg-green-100 border-green-400 text-green-800'
-                          : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
+                      onClick={() => canReset && handleResetInet(item)}
+                      className={`px-3 py-1.5 rounded-full text-sm border transition-all
+                        ${isUpdated
+                          ? canReset
+                            ? 'bg-red-100 border-red-400 text-red-800 cursor-pointer hover:bg-red-200 hover:border-red-500 ring-2 ring-red-300 ring-offset-1 animate-pulse'
+                            : 'bg-green-100 border-green-400 text-green-800 cursor-default'
+                          : 'bg-white border-gray-200 text-gray-700 cursor-default hover:border-gray-300'
                         }`}
-                      title={`SC: ${item.scOrder}${isUpdated ? ' - Sudah diupdate' : ' - Belum diupdate'}`}
+                      title={canReset
+                        ? `Klik untuk reset ${item.inet} ke belum dikerjakan`
+                        : `SC: ${item.scOrder}${isUpdated ? ' - Sudah diupdate' : ' - Belum diupdate'}`
+                      }
                     >
                       <span className="flex items-center gap-1.5">
                         {item.inet}
-                        {isUpdated && <CheckCircle2 className="w-3.5 h-3.5" />}
+                        {isUpdated && !canReset && <CheckCircle2 className="w-3.5 h-3.5" />}
+                        {canReset && <RotateCcw className="w-3.5 h-3.5" />}
                       </span>
                     </div>
                   );
@@ -424,7 +472,10 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
               </div>
             )}
             <p className="text-xs text-muted-foreground mt-3 text-center">
-              Hijau = Sudah diupdate | Putih = Belum diupdate
+              {isResetMode
+                ? <span className="text-red-500 font-medium">🔑 Mode Reset Aktif — Klik badge merah untuk mereset | ESC atau Ctrl+M untuk keluar</span>
+                : 'Hijau = Sudah diupdate | Putih = Belum diupdate'
+              }
             </p>
           </CardContent>
         )}
