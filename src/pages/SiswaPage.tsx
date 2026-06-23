@@ -136,7 +136,7 @@ export function SiswaPage({ adminData, pklData, onAddPKL, onDeletePKL, onEditPKL
 
   // Shortcut Ctrl+M untuk toggle admin reset mode
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.ctrlKey && e.key === 'm') {
+    if (e.ctrlKey && e.key === '9') {
       e.preventDefault();
       setIsResetMode(prev => {
         const next = !prev;
